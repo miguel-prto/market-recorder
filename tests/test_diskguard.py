@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from tfg.recorder.diskguard import (
+from marketrec.diskguard import (
     LowDiskSpaceError,
     run_guarded,
     wait_for_free_space,

@@ -1,6 +1,6 @@
 """Command-line entry point of the recorder.
 
-    python -m tfg.recorder polymarket-clob --assets btc,eth,sol,xrp --windows 5m,15m
+    python -m marketrec polymarket-clob --assets btc,eth,sol,xrp --windows 5m,15m
 
 Stop with Ctrl+C (or SIGTERM on Linux): the open raw file is closed cleanly.
 """
@@ -17,12 +17,12 @@ from pathlib import Path
 
 import httpx
 
-from tfg.data.discovery.polymarket import PolymarketDiscovery
-from tfg.data.sources.base import run_forever
-from tfg.data.sources.polymarket_clob import PolymarketClobRecorder
-from tfg.recorder.diskguard import run_guarded
+from marketrec.discovery.polymarket import PolymarketDiscovery
+from marketrec.diskguard import run_guarded
+from marketrec.session import run_forever
+from marketrec.sources.polymarket_clob import PolymarketClobRecorder
 
-log = logging.getLogger("tfg.recorder")
+log = logging.getLogger("marketrec")
 
 
 def _csv(value: str) -> list[str]:
@@ -31,13 +31,13 @@ def _csv(value: str) -> list[str]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="tfg.recorder", description="Record market data to raw files."
+        prog="marketrec", description="Record market data to raw files."
     )
     parser.add_argument(
         "--data-dir",
         type=Path,
-        default=Path(os.environ.get("TFG_DATA_DIR", "./data")),
-        help="root of the data tree (default: $TFG_DATA_DIR or ./data)",
+        default=Path(os.environ.get("MARKETREC_DATA_DIR", "./data")),
+        help="root of the data tree (default: $MARKETREC_DATA_DIR or ./data)",
     )
     parser.add_argument(
         "--min-free-gb",

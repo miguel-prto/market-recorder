@@ -9,15 +9,15 @@ from pathlib import Path
 import pytest
 from websockets.asyncio.server import ServerConnection, serve
 
-from tfg.data.discovery.spec import MarketSpec
-from tfg.data.sources.polymarket_clob import (
+from marketrec.discovery.spec import MarketSpec
+from marketrec.raw import RawRecord, iter_raw_records
+from marketrec.sources.polymarket_clob import (
     ClobConfig,
     PolymarketClobRecorder,
     StaleConnectionError,
     new_conn_id,
     subscription_diff,
 )
-from tfg.store.raw import RawRecord, iter_raw_records
 
 Handler = Callable[[ServerConnection], Awaitable[None]]
 

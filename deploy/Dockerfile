@@ -1,5 +1,5 @@
 # Recorder image. Build from the repository root:
-#   docker compose -f recorder/docker-compose.yml build
+#   docker compose -f deploy/docker-compose.yml build
 # Multi-arch base image, so it builds on x86-64 and on ARM64 servers alike.
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
@@ -12,12 +12,12 @@ ENV UV_COMPILE_BYTECODE=1 \
 COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-dev --no-install-project
 
-COPY python ./python
+COPY src ./src
 RUN uv sync --frozen --no-dev
 
 ENV PATH="/app/.venv/bin:$PATH" \
-    TFG_DATA_DIR=/data
+    MARKETREC_DATA_DIR=/data
 VOLUME /data
 
 # Exec form: Python is PID 1 and receives SIGTERM, so files are closed cleanly.
-ENTRYPOINT ["python", "-m", "tfg.recorder"]
+ENTRYPOINT ["python", "-m", "marketrec"]

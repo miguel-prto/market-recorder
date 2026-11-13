@@ -2,7 +2,7 @@ from pathlib import Path
 
 import zstandard as zstd
 
-from tfg.store.raw import RawRecord, RawWriter, iter_raw_records, raw_file_path
+from marketrec.raw import RawRecord, RawWriter, iter_raw_records, raw_file_path
 
 NS = 1_000_000_000
 HOUR = 3_600 * NS

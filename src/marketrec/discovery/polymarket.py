@@ -22,7 +22,7 @@ from typing import Any
 
 import httpx
 
-from tfg.data.discovery.spec import MarketSpec
+from marketrec.discovery.spec import MarketSpec
 
 log = logging.getLogger(__name__)
 

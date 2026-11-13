@@ -9,13 +9,13 @@ containers.
 Requirements: Docker with the Compose plugin. Works on x86-64 and ARM64.
 
 ```sh
-# on the server, with the repository at ~/tfg
-cd ~/tfg/recorder
+# on the server, with the repository at ~/market-recorder
+cd ~/market-recorder/deploy
 cat > .env <<'ENV'
-TFG_DATA_DIR=/home/ubuntu/tfg-data
-TFG_UID_GID=1001:1001        # `id -u`:`id -g` of the user that owns the data
+MARKETREC_DATA_DIR=/home/ubuntu/recorder-data
+MARKETREC_UID_GID=1001:1001        # `id -u`:`id -g` of the user that owns the data
 ENV
-mkdir -p /home/ubuntu/tfg-data
+mkdir -p /home/ubuntu/recorder-data
 docker compose up -d --build
 ```
 
@@ -28,7 +28,7 @@ reboot. Stopping sends SIGTERM, so open files are closed cleanly.
 docker compose ps                         # status
 docker compose logs -f --tail 50          # live log
 docker compose logs | grep "session failed"   # reconnects and their causes
-du -sh ~/tfg-data && df -h ~              # data size and free disk
+du -sh ~/recorder-data && df -h ~              # data size and free disk
 docker compose down                       # stop
 ```
 
@@ -40,8 +40,8 @@ free (5 GB in the compose file) and resumes when space is freed.
 From the development machine (no Git remote needed):
 
 ```sh
-git archive HEAD | ssh USER@HOST "tar -x -C ~/tfg && echo $(git rev-parse --short HEAD) > ~/tfg/REVISION"
-ssh USER@HOST "cd ~/tfg/recorder && docker compose up -d --build"
+git archive HEAD | ssh USER@HOST "tar -x -C ~/market-recorder && echo $(git rev-parse --short HEAD) > ~/market-recorder/REVISION"
+ssh USER@HOST "cd ~/market-recorder/deploy && docker compose up -d --build"
 ```
 
 A restart loses a few seconds of data; every new connection starts with a
@@ -49,12 +49,12 @@ full book snapshot.
 
 ## Moving data off the server
 
-On the development machine, with `TFG_REMOTE_HOST`, `TFG_REMOTE_KEY` and
-`TFG_REMOTE_DIR` set in `.env` (see `.env.example`):
+On the development machine, with `MARKETREC_REMOTE_HOST`, `MARKETREC_REMOTE_KEY` and
+`MARKETREC_REMOTE_DIR` set in `.env` (see `.env.example`):
 
 ```sh
-uv run python -m tfg.recorder.pull            # copy + verify (SHA-256)
-uv run python -m tfg.recorder.pull --delete   # copy + verify + free the server
+uv run python -m marketrec.pull            # copy + verify (SHA-256)
+uv run python -m marketrec.pull --delete   # copy + verify + free the server
 ```
 
 Only finished hourly files are moved, each one is verified before the remote

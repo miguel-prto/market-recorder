@@ -1,18 +1,20 @@
 # Recorder services. One container per (venue, scope) so that a problem in one
 # never interrupts the others.
 #
-#   TFG_DATA_DIR  host directory for the data tree (default: ../data)
-#   TFG_UID_GID   uid:gid that owns the data files (default: 1000:1000)
+#   MARKETREC_DATA_DIR  host directory for the data tree (default: ../data)
+#   MARKETREC_UID_GID   uid:gid that owns the data files (default: 1000:1000)
+
+name: recorder
 
 x-recorder: &recorder
   build:
     context: ..
-    dockerfile: recorder/Dockerfile
-  image: tfg-recorder
+    dockerfile: deploy/Dockerfile
+  image: market-recorder
   restart: unless-stopped
-  user: "${TFG_UID_GID:-1000:1000}"
+  user: "${MARKETREC_UID_GID:-1000:1000}"
   volumes:
-    - "${TFG_DATA_DIR:-../data}:/data"
+    - "${MARKETREC_DATA_DIR:-../data}:/data"
   stop_grace_period: 30s
   logging:
     driver: json-file

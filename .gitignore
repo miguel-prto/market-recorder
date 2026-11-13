@@ -3,7 +3,7 @@
 .env.*
 !.env.example
 
-# Data (never committed; lives on the VPS and in backups)
+# Data (never committed; lives on the recording server and in backups)
 /data/
 
 # Python
@@ -16,9 +16,6 @@ build/
 .pytest_cache/
 .ruff_cache/
 
-# C++
-cpp/build/
-compile_commands.json
 
 # Editors / OS
 .vscode/
@@ -29,8 +26,6 @@ Thumbs.db
 # Claude Code local settings
 .claude/settings.local.json
 
-# Private notes and editor files
-notas/
 *.code-workspace
 
 # Local logs

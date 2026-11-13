@@ -1,7 +1,7 @@
 [project]
-name = "tfg"
+name = "marketrec"
 version = "0.1.0"
-description = "Adaptive liquidity provision in prediction markets using RL: data recorder, simulator and agents"
+description = "Lossless 24/7 recorder of exchange WebSocket feeds (order books, trades) to compressed raw files"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = "MIT"
@@ -11,9 +11,6 @@ dependencies = [
     "httpx>=0.27",
     "orjson>=3.10",
     "zstandard>=0.23",
-    "pyarrow>=18",
-    "polars>=1.10",
-    "duckdb>=1.1",
 ]
 
 [dependency-groups]
@@ -29,12 +26,12 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["python/tfg"]
+packages = ["src/marketrec"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["python"]
+src = ["src"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "ANN"]
@@ -47,9 +44,9 @@ ignore = ["ANN401"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-pythonpath = ["python"]
+pythonpath = ["src"]
 
 [tool.pyright]
-include = ["python", "tests"]
+include = ["src", "tests"]
 pythonVersion = "3.12"
 typeCheckingMode = "standard"

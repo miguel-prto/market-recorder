@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from tfg.recorder.pull import (
+from marketrec.pull import (
     RemoteFile,
     extract_verified,
     is_finished,

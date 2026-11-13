@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from tfg.data.sources.base import Backoff, run_forever
+from marketrec.session import Backoff, run_forever
 
 
 class FakeTime:

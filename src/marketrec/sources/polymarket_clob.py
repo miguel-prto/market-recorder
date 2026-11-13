@@ -45,8 +45,8 @@ from typing import Any
 import orjson
 from websockets.asyncio.client import ClientConnection, connect
 
-from tfg.data.discovery.spec import Discovery, MarketSpec
-from tfg.store.raw import RawWriter
+from marketrec.discovery.spec import Discovery, MarketSpec
+from marketrec.raw import RawWriter
 
 log = logging.getLogger(__name__)
 

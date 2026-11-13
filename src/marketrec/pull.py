@@ -1,11 +1,11 @@
 """Move finished raw files from the recording server to this machine.
 
-    python -m tfg.recorder.pull            # copy and verify, keep remote files
-    python -m tfg.recorder.pull --delete   # also delete verified files remotely
+    python -m marketrec.pull            # copy and verify, keep remote files
+    python -m marketrec.pull --delete   # also delete verified files remotely
 
 Connection settings come from the environment (or ``.env``, see .env.example):
-``TFG_REMOTE_HOST`` (user@host), ``TFG_REMOTE_KEY`` (path to the SSH private
-key) and ``TFG_REMOTE_DIR`` (data directory on the server).
+``MARKETREC_REMOTE_HOST`` (user@host), ``MARKETREC_REMOTE_KEY`` (path to the SSH private
+key) and ``MARKETREC_REMOTE_DIR`` (data directory on the server).
 
 Safety rules
 - Only finished files are touched. A file is finished when the UTC hour in its
@@ -38,7 +38,7 @@ from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import IO
 
-log = logging.getLogger("tfg.recorder.pull")
+log = logging.getLogger("marketrec.pull")
 
 BATCH = 100  # files per ssh/tar invocation
 NUL = chr(0)  # separator for file names sent to `xargs -0` / `tar --null`
@@ -227,14 +227,14 @@ def _load_dotenv(path: Path) -> None:
 
 def main() -> int:
     _load_dotenv(Path(".env"))
-    parser = argparse.ArgumentParser(
-        prog="tfg.recorder.pull", description="Pull finished raw files."
-    )
-    parser.add_argument("--host", default=os.environ.get("TFG_REMOTE_HOST"))
-    parser.add_argument("--key", default=os.environ.get("TFG_REMOTE_KEY"))
-    parser.add_argument("--remote-dir", default=os.environ.get("TFG_REMOTE_DIR", "tfg-data"))
+    parser = argparse.ArgumentParser(prog="marketrec.pull", description="Pull finished raw files.")
+    parser.add_argument("--host", default=os.environ.get("MARKETREC_REMOTE_HOST"))
+    parser.add_argument("--key", default=os.environ.get("MARKETREC_REMOTE_KEY"))
     parser.add_argument(
-        "--local-dir", type=Path, default=Path(os.environ.get("TFG_DATA_DIR", "./data"))
+        "--remote-dir", default=os.environ.get("MARKETREC_REMOTE_DIR", "recorder-data")
+    )
+    parser.add_argument(
+        "--local-dir", type=Path, default=Path(os.environ.get("MARKETREC_DATA_DIR", "./data"))
     )
     parser.add_argument("--min-age-min", type=float, default=10)
     parser.add_argument("--hour-grace-min", type=float, default=30)
@@ -242,7 +242,7 @@ def main() -> int:
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     if not args.host:
-        parser.error("set TFG_REMOTE_HOST (or pass --host)")
+        parser.error("set MARKETREC_REMOTE_HOST (or pass --host)")
 
     remote = Remote(args.host, args.key, args.remote_dir)
     finished = remote.list_finished(args.min_age_min * 60, args.hour_grace_min * 60)

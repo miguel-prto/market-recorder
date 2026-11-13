@@ -7,13 +7,13 @@ from typing import Any
 import httpx
 import pytest
 
-from tfg.data.discovery.polymarket import (
+from marketrec.discovery.polymarket import (
     PolymarketDiscovery,
     parse_gamma_event,
     window_slug,
 )
 
-FIXTURE = Path(__file__).parent.parent / "fixtures" / "gamma" / "event_btc_updown_15m.json"
+FIXTURE = Path(__file__).parent / "fixtures" / "gamma" / "event_btc_updown_15m.json"
 # Real Gamma response recorded on 2026-11-12 for this slug.
 FIXTURE_START_S = 1_794_481_200
 
