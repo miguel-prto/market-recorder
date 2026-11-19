@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from marketrec import pull
 from marketrec.pull import (
     RemoteFile,
     extract_verified,
@@ -113,3 +114,22 @@ def test_file_is_finished_after_its_hour_plus_grace() -> None:
 
 def test_unrecognised_names_are_never_finished() -> None:
     assert not is_finished("raw/other/file.zst", 0, 10**10, min_age_s=0, hour_grace_s=0)
+
+
+def test_source_and_date_filters() -> None:
+    clob = "raw/pm_clob/date=2026-11-15/pm_clob_03_x-1.jsonl.zst"
+    gamma = "raw/pm_gamma/date=2026-11-16/pm_gamma_03_x-1.jsonl.zst"
+    assert pull.source_of(clob) == "pm_clob"
+    assert pull.selected(clob, (), ()) and pull.selected(gamma, (), ())
+    assert pull.selected(clob, ["pm_clob"], ["2026-11-15"])
+    assert not pull.selected(gamma, ["pm_clob"], [])
+    assert not pull.selected(clob, [], ["2026-11-16"])
+    assert pull.selected(gamma, [], ["2026-11-15", "2026-11-16"])
+
+
+def test_market_metadata_is_never_deleted_on_the_server() -> None:
+    files = [
+        pull.RemoteFile("raw/pm_clob/date=2026-11-15/a.jsonl.zst", "0" * 64),
+        pull.RemoteFile("raw/pm_gamma/date=2026-11-15/b.jsonl.zst", "1" * 64),
+    ]
+    assert [f.path for f in pull.deletable(files)] == [files[0].path]

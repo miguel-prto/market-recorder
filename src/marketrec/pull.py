@@ -2,6 +2,8 @@
 
     python -m marketrec.pull            # copy and verify, keep remote files
     python -m marketrec.pull --delete   # also delete verified files remotely
+    python -m marketrec.pull --source pm_clob --date 2026-11-15 --delete
+                                        # only one source and day
 
 Connection settings come from the environment (or ``.env``, see .env.example):
 ``MARKETREC_REMOTE_HOST`` (user@host), ``MARKETREC_REMOTE_KEY`` (path to the SSH private
@@ -17,6 +19,9 @@ Safety rules
 - Every file is checked against the SHA-256 computed on the server before it
   is given its final name. A remote file is deleted only after that check.
 - Re-running is safe: files already present with the right hash are skipped.
+- Sources in ``NEVER_DELETE`` are copied but never deleted on the server:
+  ``pm_gamma`` (market metadata, ~2 MB a day) is needed in full by
+  normalisation running on the server.
 
 Requires the ``ssh`` client on PATH; the server needs find, sha256sum and tar.
 """
@@ -32,7 +37,7 @@ import shlex
 import subprocess
 import sys
 import tarfile
-from collections.abc import Iterable, Sequence
+from collections.abc import Collection, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
@@ -41,6 +46,7 @@ from typing import IO
 log = logging.getLogger("marketrec.pull")
 
 BATCH = 100  # files per ssh/tar invocation
+NEVER_DELETE = frozenset({"pm_gamma"})
 NUL = chr(0)  # separator for file names sent to `xargs -0` / `tar --null`
 
 _RAW_NAME = re.compile(r"date=(\d{4})-(\d{2})-(\d{2})/[^/]*_(\d{2})_[^/_]+\.jsonl\.zst$")
@@ -77,6 +83,24 @@ def is_finished(
     year, month, day, hour = map(int, match.groups())
     hour_end_s = datetime(year, month, day, hour, tzinfo=UTC).timestamp() + 3600
     return now_s - mtime_s >= min_age_s and now_s >= hour_end_s + hour_grace_s
+
+
+def source_of(path: str) -> str:
+    """``raw/pm_clob/date=.../x.jsonl.zst`` -> ``pm_clob``."""
+    parts = PurePosixPath(path).parts
+    return parts[1] if len(parts) > 2 and parts[0] == "raw" else ""
+
+
+def selected(path: str, sources: Collection[str], dates: Collection[str]) -> bool:
+    """Whether ``path`` matches the ``--source`` / ``--date`` filters (empty = any)."""
+    if sources and source_of(path) not in sources:
+        return False
+    return not dates or any(f"/date={d}/" in path for d in dates)
+
+
+def deletable(files: Iterable[RemoteFile]) -> list[RemoteFile]:
+    """The files that may be deleted on the server (see ``NEVER_DELETE``)."""
+    return [f for f in files if source_of(f.path) not in NEVER_DELETE]
 
 
 def parse_sha256sum(output: str) -> list[RemoteFile]:
@@ -173,7 +197,13 @@ class Remote:
             args += ["-i", self.key]
         return [*args, self.host, f"cd {shlex.quote(self.directory)} && {command}"]
 
-    def list_finished(self, min_age_s: float, hour_grace_s: float) -> list[RemoteFile]:
+    def list_finished(
+        self,
+        min_age_s: float,
+        hour_grace_s: float,
+        sources: Collection[str] = (),
+        dates: Collection[str] = (),
+    ) -> list[RemoteFile]:
         listing = subprocess.run(
             self._ssh(r"date +%s && find raw -type f -name '*.zst' -printf '%T@\t%p\n'"),
             capture_output=True,
@@ -184,6 +214,7 @@ class Remote:
             path
             for mtime_s, path in entries
             if is_finished(path, mtime_s, now_s, min_age_s=min_age_s, hour_grace_s=hour_grace_s)
+            and selected(path, sources, dates)
         )
         if not names:
             return []
@@ -239,13 +270,21 @@ def main() -> int:
     parser.add_argument("--min-age-min", type=float, default=10)
     parser.add_argument("--hour-grace-min", type=float, default=30)
     parser.add_argument("--delete", action="store_true", help="delete verified files remotely")
+    parser.add_argument(
+        "--source", action="append", default=[], help="only this raw source (repeatable)"
+    )
+    parser.add_argument(
+        "--date", action="append", default=[], help="only this UTC date, YYYY-MM-DD (repeatable)"
+    )
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     if not args.host:
         parser.error("set MARKETREC_REMOTE_HOST (or pass --host)")
 
     remote = Remote(args.host, args.key, args.remote_dir)
-    finished = remote.list_finished(args.min_age_min * 60, args.hour_grace_min * 60)
+    finished = remote.list_finished(
+        args.min_age_min * 60, args.hour_grace_min * 60, args.source, args.date
+    )
     present, missing = split_present(finished, args.local_dir)
     log.info(
         "%d finished files on the server: %d already here, %d to fetch",
@@ -264,9 +303,16 @@ def main() -> int:
             log.error("%d files of this batch were not verified", len(batch) - len(got))
 
     failed = len(finished) - len(verified)
-    if args.delete and verified:
-        remote.delete(verified)
-        log.info("deleted %d verified files on the server", len(verified))
+    to_delete = deletable(verified)
+    if args.delete and to_delete:
+        remote.delete(to_delete)
+        log.info("deleted %d verified files on the server", len(to_delete))
+    if args.delete and len(to_delete) < len(verified):
+        log.info(
+            "%d files of %s kept on the server",
+            len(verified) - len(to_delete),
+            sorted(NEVER_DELETE),
+        )
     elif verified:
         log.info("remote files kept (run with --delete to free space on the server)")
     return 1 if failed else 0
